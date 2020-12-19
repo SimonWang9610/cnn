@@ -2,6 +2,7 @@ extern crate ndarray;
 extern crate utils;
 extern crate image;
 
+use utils::network::{nn, forward};
 use utils::pooling::Pool;
 use utils::convolution::{Conv3D, Conv2D};
 use utils::full_connected::FullLayer;
@@ -49,19 +50,25 @@ fn main() {
     let image = vec![Array2::from_shape_vec((28, 28), a).unwrap(), 
         Array2::from_shape_vec((28, 28), b).unwrap(),
         Array2::from_shape_vec((28, 28), c).unwrap()];
+    let img = vec![image];
 
-    let conv3d = Conv3D::new(3, 6, 1, 1, 28, 3);
-    let outputs = conv3d.forward(&image);
-    println!("outputs length {:?} output[0] shape {:?}", outputs.len(), outputs[0].shape());
 
-    /* let output = conv2d.forward(&image[0]);
-    println!("output shape {:?}", output.shape());
-    
-    let delta: Array2<f32> = Array::random((28, 28), StandardNormal);
-    let result = conv2d.cal_delta(&delta);
-    println!("result shape {:?}", result.shape()); */
-    // println!(" a {}", a);
-    // let flipped = flip_matrix(&a, 3, 1, 1);
-    // println!("flipped {:?} * {:?}", flipped.len(), flipped[0].len());
-    // println!("flipped {:#?}", flipped);
+    let conv1 = nn::new("Conv".to_string(), vec![3, 6, 1, 1, 28, 3, 0], 0.001);
+    let relu1 = nn::new("Relu".to_string(), vec![0], 0.001);
+    let max1 = nn::new("Pool".to_string(), vec![4, 2, 0, 6, 28, 0], 0.001);
+
+    let conv2 = nn::new("Conv".to_string(), vec![6, 10, 1, 1, 13, 3, 0], 0.001);
+    let relu2 = nn::new("Relu".to_string(), vec![0], 0.001);
+    let max2 = nn::new("Pool".to_string(), vec![3, 2, 0, 10, 13, 1], 0.001);
+
+    let fc1 = nn::new("Full".to_string(), vec![100, 360, 10], 0.001);
+    let relu3 = nn::new("Relu".to_string(), vec![0], 0.001);
+    let fc2 = nn::new("Full".to_string(), vec![10, 100, 0], 0.001);
+    let soft = nn::new("Softmax".to_string(), vec![1], 0.001);
+
+    let model = vec![conv1, relu1, max1, conv2, relu2, max2, fc1, relu3, fc2, soft];
+
+    let outputs = forward(model, img);
+
+    println!("output {:?}", outputs[outputs.len() - 1]);
 }

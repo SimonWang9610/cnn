@@ -34,9 +34,13 @@ impl Pool {
     }
 
     pub fn forward(&self, inputs:&Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
+        println!("output shape [{:?}, {:?}, {:?}]", inputs.len(), inputs[0].len(), inputs[0][0].shape());
+
         // at pooling layer, out_channel==in_channel
         // inputs [sample, out_channel, input_width, input_width]
         // positions [sample, out_channel, index]    (index < input_width * input_width)
+        println!("Pooling forwarding....");
+
         let mut positions: Vec<Vec<Vec<usize>>> = vec![]; 
 
         let outputs = inputs.iter().map(|input| {

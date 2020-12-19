@@ -22,7 +22,7 @@ pub struct FullLayer {
 impl FullLayer {
     fn initialization(neurons: usize, prev_neurons: usize) -> (Array2<f32>, Array2<f32>) {
         (
-            Array::random((neurons, prev_neurons), StandardNormal) * 0.5,
+            Array::random((neurons, prev_neurons), StandardNormal) * 0.05,
             Array2::zeros((neurons, 1))
         )
     }
@@ -45,6 +45,7 @@ impl FullLayer {
     pub fn forward(&self, inputs: &Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
         // inputs [sample, channel, input_width, input_width]
         // output [1, 1, sample, neurons]
+        println!("FullConnected forwarding....");
 
         let flattened_input = if self.boundary != 0 {
             _flatten_withno_channel(inputs, self.prev_neurons)

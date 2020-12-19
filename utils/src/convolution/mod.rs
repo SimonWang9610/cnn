@@ -40,7 +40,7 @@ impl Conv2D {
     fn initialization(prev_width: usize, width: usize, stride: usize,padding: usize) 
     -> (Array2<f32>, Array2<f32>) {
         (
-            Array::random((width, width), StandardNormal),
+            Array::random((width, width), StandardNormal) * 0.05,
             Array::zeros((cal_shape(prev_width, width, stride, padding), 1))
         )
     }
@@ -112,6 +112,9 @@ impl Conv3D {
     }
 
     pub fn forward(&self, inputs: &Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
+        println!("input shape [{:?}, {:?}, {:?}]", inputs.len(), inputs[0].len(), inputs[0][0].shape());
+
+        println!("Conv forwarding....");
         inputs.iter().map(|input| self._forward(input)).collect::<Vec<Vec<Array2<f32>>>>()
     }
 
@@ -166,14 +169,12 @@ impl Conv3D {
     fn _forward(&self, input: &Vec<Array2<f32>>) -> Vec<Array2<f32>> {
         // input.len() == in_channel
         // output.len() == out_channel
-        let output_width = cal_shape(self.prev_width, self.filter_width, self.stride, self.padding);
-        println!("output width {:?}", output_width);
         (0..self.out_channel).map(
             |out_index| {
                 let outputs: Vec<Array2<f32>> = input.iter().zip(self.conv2d.borrow()[out_index].iter()).map(
                     |(data, conv)| conv.forward(data)
                 ).collect();
-                let summary = Array::zeros((output_width, output_width));
+                let summary = Array::zeros((self.output_width, self.output_width));
                 outputs.into_iter().fold(summary, |acc, output| acc + output)
             }
         ).collect::<Vec<Array2<f32>>>()

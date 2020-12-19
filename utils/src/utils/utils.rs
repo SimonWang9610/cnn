@@ -20,7 +20,7 @@ pub fn im2col_input(input: &Array2<f32>, width: usize, filter_width: usize) -> A
 }
 
 
-pub fn padding(matrix: &Array2<f32>) -> Array2<f32> {
+pub fn padding_input(matrix: &Array2<f32>) -> Array2<f32> {
     // default pad=1
     // currently only support pad=1
     let width = matrix.shape()[0];
@@ -39,11 +39,10 @@ pub fn padding(matrix: &Array2<f32>) -> Array2<f32> {
     Array2::from_shape_vec((width+2, width+2), padded_matrix_as_vec).unwrap()
 }
 
-pub fn flip_matrix(matrix: &Array2<f32>, width: usize, stride: usize, _padding: usize) -> Vec<Vec<f32>> {
+pub fn flip_matrix(matrix: &Array2<f32>, width: usize, stride: usize) -> Vec<Vec<f32>> {
     // input must be padded before scan the input array
-    let padded_matrix = padding(matrix);
     
-    let input_width = padded_matrix.shape()[0];
+    let input_width = matrix.shape()[0];
     let mut flipped_vector = vec![];
     let mut x = 0 as usize;
     let mut y = 0  as usize;
@@ -55,7 +54,7 @@ pub fn flip_matrix(matrix: &Array2<f32>, width: usize, stride: usize, _padding: 
             let mut filter_vector = vec![];
             for i in 0..width {
                 for j in 0..width {
-                    let temp = padded_matrix.get((x+i, y+j)).unwrap();
+                    let temp = matrix.get((x+i, y+j)).unwrap();
                     filter_vector.push(*temp);
                 }
             }
@@ -69,7 +68,7 @@ pub fn flip_matrix(matrix: &Array2<f32>, width: usize, stride: usize, _padding: 
 }
 
 pub fn im2col(matrix: &Array2<f32>, width: usize, stride: usize, padding: usize) -> Array2<f32> {
-    let flipped_as_nested_vector: Vec<Vec<f32>> = flip_matrix(matrix, width, stride, padding);
+    let flipped_as_nested_vector: Vec<Vec<f32>> = flip_matrix(&padding_input(matrix), width, stride);
     let shape = cal_shape(matrix.shape()[0], width, stride, padding);
 
     Array::from_shape_vec((shape * shape, width * width), 

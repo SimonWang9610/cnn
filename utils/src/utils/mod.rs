@@ -13,7 +13,7 @@ pub fn _max_pool(
     let output_width = cal_shape(input_width, width, stride, padding);
     let mut indices: Vec<usize> = vec![];
     // return (max_pooled_input, index_max_values)
-    let flipped_matrix: Vec<(usize, usize, f32)> = flip_matrix(input, width, stride, padding)
+    let flipped_matrix: Vec<(usize, usize, f32)> = flip_matrix(input, width, stride)
     .into_iter()
     .enumerate()
     .map(
@@ -30,15 +30,11 @@ pub fn _max_pool(
         (index, pair.0, pair.1)
         }
     ).collect();
-
     let max_values: Vec<f32> = flipped_matrix.into_iter().map(|(index, pos, val)| {
         indices.push(_restore_max_index(output_width, (index, pos), stride, input.shape()[0], width));
         val
     }).collect();
-
-    let shape = cal_shape(input.shape()[0], width, stride, padding);
-
-    (Array2::from_shape_vec((shape, shape), max_values).unwrap(), indices)
+    (Array2::from_shape_vec((output_width, output_width), max_values).unwrap(), indices)
 }
 
 pub fn _convolution(filter: &Array2<f32>, input: &Array2<f32>, stride: usize, padding: usize) -> Array2<f32> {
