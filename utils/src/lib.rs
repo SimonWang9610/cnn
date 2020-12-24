@@ -5,4 +5,4 @@ pub mod pooling;
 pub mod full_connected;
 pub mod activation;
 pub mod network;
-pub mod gradient;
+pub mod trained;

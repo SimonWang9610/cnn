@@ -64,7 +64,7 @@ impl FullLayer {
 
         let sample = next_deltas[0][0].shape()[0];
 
-        let flattened_input = if self.boundary == 1 {
+        let flattened_input = if self.boundary != 1 {
             _flatten_withno_channel(&inputs, self.prev_neurons)
         } else {
             inputs[0].to_owned()
@@ -108,6 +108,6 @@ impl FullLayer {
         let cloned_bias = self.bias.borrow().clone();
 
         *self.weights.borrow_mut() = cloned_weights - self.alpha * derivate_weight /  self.neurons as f32;
-        *self.bias.borrow_mut() = cloned_bias - self.alpha * derivate_bias.sum_axis(Axis(0)) / sample as f32;
+        *self.bias.borrow_mut() = cloned_bias - self.alpha * derivate_bias.t().sum_axis(Axis(0)) / sample as f32;
     }
 }

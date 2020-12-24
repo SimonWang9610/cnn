@@ -82,10 +82,11 @@ impl Pool {
     fn single_upsample(&self, deltas: Vec<Array2<f32>>, pos: &Vec<Vec<usize>>) -> Vec<Array2<f32>> {
         // deltas [out_channel, output_width, output_width]
         // pos [out_channel, index]
-        let deltas_with_channel = _restore_with_channel(deltas, self.out_channel, 
-            self.input_width, self.width, self.stride, self.padding, self.boundary);
         
-        deltas_with_channel.into_iter().enumerate().map(|(index, delta)| {
+        /* let deltas_with_channel = _restore_with_channel(deltas, self.out_channel, 
+            self.input_width, self.width, self.stride, self.padding, self.boundary); */
+        
+        deltas.into_iter().enumerate().map(|(index, delta)| {
             _upsample(delta, &pos[index], self.input_width)
         }).collect::<Vec<Array2<f32>>>()
     }

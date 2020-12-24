@@ -1,35 +1,17 @@
+extern crate image;
 extern crate ndarray;
 extern crate utils;
-extern crate image;
 
-use utils::network::{nn, forward};
+use utils::network::{nn, forward, backward};
 use utils::pooling::Pool;
 use utils::convolution::{Conv3D, Conv2D};
 use utils::full_connected::FullLayer;
-use utils::utils::utils::flip_matrix;
 use ndarray::{Array2, Array};
 use ndarray_rand::rand_distr::StandardNormal;
 use ndarray_rand::RandomExt;
 
 use image::io::Reader;
 fn main() {
-    /* let pool = Pool::new(3, 2, 0);
-    let input:Vec<Array2<f32>> = (0..2).map(|_| Array::random((7, 7), StandardNormal)).collect();
-    println!("input {:#?}", input);
-
-    let (outputs, max_positions) = pool.max_pool(input);
-    
-    for (output, pos) in outputs.iter().zip(max_positions.iter()) {
-        println!("pos {:?}", pos);
-    }
-
-    let a: Vec<f32> = (0..9).map(|_| 1.).collect();
-    let b: Vec<f32> = (0..9).map(|_| 2.).collect();
-    let deltas = vec![Array2::from_shape_vec((3,3), a).unwrap(), Array2::from_shape_vec((3,3), b).unwrap()];
-
-    let out_delta = pool.upsample(deltas, max_positions);
-    println!(" out delta {:?}", out_delta); */
-
     let image_bytes = Reader::open("../second.png").unwrap().decode().unwrap();
     let image_pixels = image_bytes.into_rgb8().into_vec().into_iter();
     
@@ -66,9 +48,15 @@ fn main() {
     let fc2 = nn::new("Full".to_string(), vec![10, 100, 0], 0.001);
     let soft = nn::new("Softmax".to_string(), vec![1], 0.001);
 
-    let model = vec![conv1, relu1, max1, conv2, relu2, max2, fc1, relu3, fc2, soft];
+    let mut model = vec![conv1, relu1, max1, conv2, relu2, max2, fc1, relu3, fc2, soft];
 
-    let outputs = forward(model, img);
+    println!("conv1 {}", model[0]);
 
-    println!("output {:?}", outputs[outputs.len() - 1]);
+    let mut outputs = forward(&model, img);
+    let target = Array2::from_shape_vec((1, 10), vec![1., 0., 0., 0., 0., 0., 0., 0., 0., 0.]).unwrap();
+    let deltas = vec![vec![outputs.pop().unwrap()[0][0].clone().reversed_axes() - target]];
+
+    backward(&mut model, outputs, deltas);
+    println!("updated conv1 {}", model[0]);
+
 }

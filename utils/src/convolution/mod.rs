@@ -7,6 +7,7 @@ use ndarray_rand::rand_distr::StandardNormal;
 use ndarray_rand::RandomExt;
 
 use std::cell::RefCell;
+use std::fmt::{Formatter, Display, Result};
 
 // transposed_filter will change after updating filter
 // therefore, the method to update the filter must re-calculate the transposed filter
@@ -58,13 +59,20 @@ impl Conv2D {
     pub fn update(&self, derivate_bias: &Array2<f32>, derivate_filter: &Array2<f32>) {
         let cloned_bias = self.bias.borrow().clone();
         let cloned_filter = self.filter.borrow().clone();
+        let shape = cloned_bias.shape()[0];
 
         *self.filter.borrow_mut() = cloned_filter - self.alpha * derivate_filter;
-        *self.bias.borrow_mut() = cloned_bias - self.alpha * derivate_bias.sum_axis(Axis(1)) / self.prev as f32;
+        *self.bias.borrow_mut() = cloned_bias - self.alpha * derivate_bias.sum_axis(Axis(1)).into_shape((shape, 1)).unwrap() / self.prev as f32;
         *self.transposed_filter.borrow_mut() = _rotate(&*self.filter.borrow(), 2);
     }
+
 }
 
+impl Display for Conv2D {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "Conv2D filter {}", self.filter.borrow())
+    }
+}
 
 pub struct Conv3D {
     pub in_channel: usize,
@@ -80,7 +88,8 @@ pub struct Conv3D {
 }
 
 impl Conv3D {
-    pub fn new(in_channel: usize,
+    pub fn new(
+        in_channel: usize,
         out_channel: usize,
         stride: usize,
         padding: usize,
@@ -111,6 +120,7 @@ impl Conv3D {
         }
     }
 
+
     pub fn forward(&self, inputs: &Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
         println!("input shape [{:?}, {:?}, {:?}]", inputs.len(), inputs[0].len(), inputs[0][0].shape());
 
@@ -119,7 +129,7 @@ impl Conv3D {
     }
 
     
-    pub fn backward(&self, next_deltas: Vec<Vec<Array2<f32>>>, inputs: Vec<Vec<Array2<f32>>>) 
+    pub fn backward(&self, inputs: Vec<Vec<Array2<f32>>>, next_deltas: Vec<Vec<Array2<f32>>>) 
     -> Vec<Vec<Array2<f32>>> {
         // next_deltas : [sample, out_channel, output_width, output_width]
         // inputs: [sample, in_channel, input_width, input_width]
@@ -205,5 +215,11 @@ impl Conv3D {
                 _convolution(&delta[out_index], &input[in_index], self.stride, self.padding)
             }).collect::<Vec<Array2<f32>>>()
         }).collect::<Vec<Vec<Array2<f32>>>>()
+    }
+}
+
+impl Display for Conv3D {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "Conv3D [0][0] filter {}", self.conv2d.borrow()[0][0])
     }
 }
