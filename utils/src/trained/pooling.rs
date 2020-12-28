@@ -1,11 +1,13 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json;
+use std::fmt::Debug;
 
 use std::cell::RefCell;
 
 use crate::pooling::Pool;
+use crate::trained::Convert;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct PoolJson {
     pub width: usize,
     pub stride: usize,
@@ -15,8 +17,8 @@ pub struct PoolJson {
     pub input_width: usize
 }
 
-impl PoolJson {
-    pub fn new(pool: Pool) -> PoolJson {
+impl Convert<Pool, PoolJson> for PoolJson {
+    fn new(pool: Pool) -> PoolJson {
         PoolJson {
             width: pool.width,
             stride: pool.stride,
@@ -27,20 +29,7 @@ impl PoolJson {
         }
     }
 
-    pub fn to_json(self) -> Value {
-        json!({
-            "Pool": {
-                "width": self.width,
-                "stride": self.stride,
-                "padding": self.padding,
-                "boundary": self.boundary,
-                "out_channel": self.out_channel,
-                "input_width": self.input_width
-            }
-        })
-    }
-
-    pub fn to_layer(self) -> Pool {
+    fn to_layer(self) -> Pool {
         Pool {
             width: self.width,
             stride: self.stride,
@@ -50,5 +39,12 @@ impl PoolJson {
             input_width: self.input_width,
             positions: RefCell::new(vec![])
         }
+    }
+}
+
+impl ToString for PoolJson {
+    
+    fn to_string(&self) -> String {
+        serde_json::to_string(&self).unwrap()
     }
 }

@@ -1,7 +1,6 @@
-
+use crate::propagation::Propagation;
 use crate::utils;
 use utils::_flatten_withno_channel;
-use utils::utils::{_softmax, _relu, relu_derivate};
 
 use ndarray::{Array, Array2, Axis};
 use ndarray_rand::rand_distr::StandardNormal;
@@ -19,33 +18,10 @@ pub struct FullLayer {
     pub bias: RefCell<Array2<f32>>,
 }
 
-impl FullLayer {
-    fn initialization(neurons: usize, prev_neurons: usize) -> (Array2<f32>, Array2<f32>) {
-        (
-            Array::random((neurons, prev_neurons), StandardNormal) * 0.05,
-            Array2::zeros((neurons, 1))
-        )
-    }
-}
-
-impl FullLayer {
-    pub fn new(neurons: usize, prev_neurons: usize, alpha: f32, boundary: usize) -> FullLayer {
-        let (weights, bias) = FullLayer::initialization(neurons, prev_neurons);
-
-        FullLayer {
-            neurons,
-            prev_neurons,
-            alpha,
-            boundary,
-            weights: RefCell::new(weights),
-            bias: RefCell::new(bias)
-        }
-    }
-
-    pub fn forward(&self, inputs: &Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
+impl Propagation for FullLayer {
+    fn forward(&self, inputs: &Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
         // inputs [sample, channel, input_width, input_width]
         // output [1, 1, sample, neurons]
-        println!("FullConnected forwarding....");
 
         let flattened_input = if self.boundary != 0 {
             _flatten_withno_channel(inputs, self.prev_neurons)
@@ -57,8 +33,7 @@ impl FullLayer {
         vec![vec![z.reversed_axes()]]
     }
 
-
-    pub fn backward(&self, inputs: Vec<Vec<Array2<f32>>>, next_deltas: Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
+    fn backward(&self, inputs: Vec<Vec<Array2<f32>>>, next_deltas: Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
         // input [1, 1, sample, prev_neurons] or [sample, channel, input_width, input_width]
         // next_deltas [1, 1, sample, neurons]
 
@@ -80,6 +55,30 @@ impl FullLayer {
 }
 
 impl FullLayer {
+
+    pub fn new(neurons: usize, prev_neurons: usize, alpha: f32, boundary: usize) -> FullLayer {
+        let (weights, bias) = FullLayer::initialization(neurons, prev_neurons);
+
+        FullLayer {
+            neurons,
+            prev_neurons,
+            alpha,
+            boundary,
+            weights: RefCell::new(weights),
+            bias: RefCell::new(bias)
+        }
+    }
+
+}
+
+impl FullLayer {
+
+    fn initialization(neurons: usize, prev_neurons: usize) -> (Array2<f32>, Array2<f32>) {
+        (
+            Array::random((neurons, prev_neurons), StandardNormal) * 0.05,
+            Array2::zeros((neurons, 1))
+        )
+    }
 
     fn cal_delta(&self, next_delta: &Vec<Vec<Array2<f32>>>, sample: usize) -> Vec<Vec<Array2<f32>>> {
         // next delta [1, 1, sample, neurons]

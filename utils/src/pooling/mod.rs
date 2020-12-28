@@ -1,6 +1,7 @@
 use ndarray::Array2;
+use crate::propagation::Propagation;
 use crate::utils;
-use utils::{_max_pool, _upsample, _restore_with_channel};
+use utils::{_max_pool, _upsample};
 use std::cell::RefCell;
 
 pub struct Pool {
@@ -11,6 +12,33 @@ pub struct Pool {
     pub out_channel: usize,
     pub input_width: usize,
     pub positions: RefCell<Vec<Vec<Vec<usize>>>>
+}
+
+impl Propagation for Pool {
+    fn forward(&self, inputs:&Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
+
+        // at pooling layer, out_channel==in_channel
+        // inputs [sample, out_channel, input_width, input_width]
+        // positions [sample, out_channel, index]    (index < input_width * input_width)
+        let mut positions: Vec<Vec<Vec<usize>>> = vec![]; 
+
+        let outputs = inputs.iter().map(|input| {
+            let (output, pos) = self.single_max_pool(input);
+            positions.push(pos);
+            output
+        }).collect::<Vec<Vec<Array2<f32>>>>();
+
+        *self.positions.borrow_mut() = positions;
+        outputs
+    }
+
+    fn backward(&self, _: Vec<Vec<Array2<f32>>>, next_deltas: Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
+        // next_deltas [samples, out_channel, output_width, output_width]
+
+        next_deltas.into_iter().zip(self.positions.borrow().iter()).map(|(delta, pos)| {
+            self.single_upsample(delta, pos)
+        }).collect::<Vec<Vec<Array2<f32>>>>()
+    }
 }
 
 impl Pool {
@@ -33,33 +61,6 @@ impl Pool {
         }
     }
 
-    pub fn forward(&self, inputs:&Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
-        println!("output shape [{:?}, {:?}, {:?}]", inputs.len(), inputs[0].len(), inputs[0][0].shape());
-
-        // at pooling layer, out_channel==in_channel
-        // inputs [sample, out_channel, input_width, input_width]
-        // positions [sample, out_channel, index]    (index < input_width * input_width)
-        println!("Pooling forwarding....");
-
-        let mut positions: Vec<Vec<Vec<usize>>> = vec![]; 
-
-        let outputs = inputs.iter().map(|input| {
-            let (output, pos) = self.single_max_pool(input);
-            positions.push(pos);
-            output
-        }).collect::<Vec<Vec<Array2<f32>>>>();
-
-        *self.positions.borrow_mut() = positions;
-        outputs
-    }
-
-    pub fn backward(&self, next_deltas: Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
-        // next_deltas [samples, out_channel, output_width, output_width]
-
-        next_deltas.into_iter().zip(self.positions.borrow().iter()).map(|(delta, pos)| {
-            self.single_upsample(delta, pos)
-        }).collect::<Vec<Vec<Array2<f32>>>>()
-    }
 }
 
 impl Pool {

@@ -1,5 +1,5 @@
 pub mod utils;
-use ndarray::{Array2};
+use ndarray::{Array2, Axis};
 
 use utils::{flip_matrix, cal_shape, im2col, im2col_filter, _rotate, _restore_max_index};
 
@@ -111,7 +111,8 @@ pub fn _flatten_withno_channel(
     inputs: &Vec<Vec<Array2<f32>>>,
     prev_neurons: usize
 ) -> Vec<Array2<f32>> {
-    // input [sample, prev_neurons]
+    // inputs [sample, channel, width * width]
+    // prev_neurons = channel * width * width
     // at the boundary, flattened pixels == prev_neurons
     let samples = inputs.len();
     let vectors = inputs.iter().map(|input| {
@@ -130,4 +131,26 @@ pub fn sum_nested_vector(a: Vec<Array2<f32>>, b: Vec<Array2<f32>>) -> Vec<Array2
     }).collect::<Vec<Array2<f32>>>()
 }
 
+pub fn one_hot(labels: Array2<f32>, cols: usize) -> Array2<f32> {
+    let rows = labels.shape()[0];
+    let mut data = vec![];
+    for item in labels.into_iter() {
+        let mut row = Vec::with_capacity(cols);
+        for index in 0..cols {
+            if index as f32 == *item {
+                row.push(1.);
+            } else {
+                row.push(0.);
+            }
+        }
+        data.extend_from_slice(&row);
+    }
+    Array2::from_shape_vec((rows, cols), data).unwrap()
+}
 
+pub fn matrix_to_tensor(matrix: Array2<f32>) -> Vec<Vec<Array2<f32>>> {
+    // convert [sample, 28 * 28] to [sample, 1, 28 * 28]
+    matrix.axis_iter(Axis(0)).map(|row| {
+        vec![row.to_owned().into_shape((28, 28)).unwrap()]
+    }).collect::<Vec<Vec<Array2<f32>>>>()
+}

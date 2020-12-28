@@ -1,3 +1,4 @@
+use crate::propagation::Propagation;
 use crate::utils;
 use utils::{_convolution, _restore_with_channel, sum_nested_vector};
 use utils::utils::{cal_shape, _rotate};
@@ -87,49 +88,13 @@ pub struct Conv3D {
     pub conv2d: RefCell<Vec<Vec<Conv2D>>>
 }
 
-impl Conv3D {
-    pub fn new(
-        in_channel: usize,
-        out_channel: usize,
-        stride: usize,
-        padding: usize,
-        prev_width: usize,
-        filter_width: usize,
-        alpha: f32,
-        boundary: usize
-    ) -> Conv3D {
-        // conv2d: (out_channel, in_channel)
-        let conv2d: Vec<Vec<Conv2D>> = (0..out_channel).map(
-            |_| (0..in_channel).map(
-                |_| Conv2D::new(prev_width, filter_width, padding, stride, alpha)
-            ).collect::<Vec<Conv2D>>()
-        ).collect();
-        let output_width = cal_shape(prev_width, filter_width, stride, padding);
-
-        Conv3D {
-            in_channel,
-            out_channel,
-            stride,
-            padding,
-            prev_width,
-            output_width,
-            filter_width,
-            alpha,
-            boundary,
-            conv2d: RefCell::new(conv2d)
-        }
-    }
-
-
-    pub fn forward(&self, inputs: &Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
-        println!("input shape [{:?}, {:?}, {:?}]", inputs.len(), inputs[0].len(), inputs[0][0].shape());
-
-        println!("Conv forwarding....");
+impl Propagation for Conv3D {
+    fn forward(&self, inputs: &Vec<Vec<Array2<f32>>>) -> Vec<Vec<Array2<f32>>> {
         inputs.iter().map(|input| self._forward(input)).collect::<Vec<Vec<Array2<f32>>>>()
     }
 
     
-    pub fn backward(&self, inputs: Vec<Vec<Array2<f32>>>, next_deltas: Vec<Vec<Array2<f32>>>) 
+    fn backward(&self, inputs: Vec<Vec<Array2<f32>>>, next_deltas: Vec<Vec<Array2<f32>>>) 
     -> Vec<Vec<Array2<f32>>> {
         // next_deltas : [sample, out_channel, output_width, output_width]
         // inputs: [sample, in_channel, input_width, input_width]
@@ -172,6 +137,41 @@ impl Conv3D {
             self.cal_delta(delta)
         }).collect::<Vec<Vec<Array2<f32>>>>()
     }
+}
+
+impl Conv3D {
+    pub fn new(
+        in_channel: usize,
+        out_channel: usize,
+        stride: usize,
+        padding: usize,
+        prev_width: usize,
+        filter_width: usize,
+        alpha: f32,
+        boundary: usize
+    ) -> Conv3D {
+        // conv2d: (out_channel, in_channel)
+        let conv2d: Vec<Vec<Conv2D>> = (0..out_channel).map(
+            |_| (0..in_channel).map(
+                |_| Conv2D::new(prev_width, filter_width, padding, stride, alpha)
+            ).collect::<Vec<Conv2D>>()
+        ).collect();
+        let output_width = cal_shape(prev_width, filter_width, stride, padding);
+
+        Conv3D {
+            in_channel,
+            out_channel,
+            stride,
+            padding,
+            prev_width,
+            output_width,
+            filter_width,
+            alpha,
+            boundary,
+            conv2d: RefCell::new(conv2d)
+        }
+    }
+
 }
 
 impl Conv3D {

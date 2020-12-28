@@ -126,29 +126,92 @@ pub fn _restore_max_index(offset: usize, pair: (usize, usize), stride: usize, le
 ////////////////////////////////////////////////////////////
 // below functions for full connected layer
 ////////////////////////////////////////////////////////////
+/// 
 pub fn compute_loss(output: &Array2<f32>, labels: &Array2<f32>) -> f32 {
     // output [sample, 10]
-    // labels [sample, 10]
+    // target [sample, 10]
     let average = -1. / labels.shape()[0] as f32;
-    output
-        .into_iter()
-        .zip(labels.iter())
+
+    output.iter().zip(labels.iter())
         .fold(0., |acc, (o, l)| acc + l * o.log(E)) * average
 }
+
+// pub fn compute_loss_single(output: &Vec<Array2<f32>>, labels: &Array2<f32>) -> f32 {
+//     //output [1, 1 * 10]
+//     //labels [1 * 10]
+
+//     output[0].iter()
+//         .zip(labels.iter())
+//         .fold(0., |acc, (o, l)| acc + l * o.log(E)) * -1.
+// }
+
+// pub fn compute_loss_batch(output: &Vec<Vec<Array2<f32>>>, labels: &Vec<Array2<f32>>) -> f32 {
+//     // output [sample, 1, 1 * 10]
+//     // labels [sample, 1 * 10]
+
+//     let average = -1. / labels.len() as f32;
+    
+//     output.iter().zip(labels.iter())
+//         .fold(0., |acc, (o, l)| {
+//             acc + compute_loss_single(o, l)
+//         }) * average
+// }
+
+pub fn evaluate(output: &Array2<f32>, labels: &Array2<f32>) -> f32 {
+    let predictions = output.map_axis(Axis(1), |row| {
+        let mut max = (0, 0.);
+        for (i, ele) in row.iter().enumerate() {
+            if *ele > max.1 {
+                max = (i, *ele);
+            }
+        }
+        max.0 as f32
+    });
+
+    let labels = labels.map_axis(Axis(1), |row| {
+        let mut max = (0, 0.);
+        for (i, ele) in row.iter().enumerate() {
+            if *ele > max.1 {
+                max = (i, *ele);
+            }
+        }
+        max.0 as f32
+    });
+
+    predictions
+        .into_iter()
+        .zip(labels.into_iter())
+        .fold(
+            0.,
+            |acc, (prediction, label)| {
+                if prediction == label {
+                    acc + 1.
+                } else {
+                    acc
+                }
+            },
+        )
+}
+
+
+//////////////////////////
+/// Activation functions
+//////////////////////////
+
 
 pub fn _relu(input: &Array2<f32>) -> Array2<f32> {
     input.mapv(|ele| if ele >= 0. { ele } else { 0. })
 }
 
 pub fn _softmax(input: &mut Array2<f32>) -> Vec<Array2<f32>> {
-    input.swap_axes(0, 1);
     let exp_sum = input
         .map_axis(Axis(1), |row| {
             row.fold(0., |acc, &ele: &f32| acc + ele.exp())
         })
         .into_shape((input.shape()[0], 1))
-        .unwrap();
-    let exp_input = input.mapv(|ele| ele.exp());
+        .unwrap(); // [sample, 1]
+
+    let exp_input = input.mapv(|ele| ele.exp()); // [sample, 10]
     vec![exp_input / exp_sum]
 }
 

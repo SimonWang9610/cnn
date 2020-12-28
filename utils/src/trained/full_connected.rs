@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json;
+use std::fmt::Debug;
 
 use std::cell::RefCell;
 use ndarray::Array2;
 
 use crate::full_connected::FullLayer;
+use crate::trained::Convert;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct FullJson {
     pub neurons: usize,
     pub prev_neurons: usize,
@@ -16,8 +18,8 @@ pub struct FullJson {
     pub bias: Vec<f32>
 }
 
-impl FullJson {
-    pub fn new(full: FullLayer) -> FullJson {
+impl Convert<FullLayer, FullJson> for FullJson {
+    fn new(full: FullLayer) -> FullJson {
 
         FullJson {
             neurons: full.neurons,
@@ -35,21 +37,7 @@ impl FullJson {
         }
     }
 
-    pub fn to_json(self) -> Value {
-        
-        json!({
-            "Full": {
-                "neurons": self.neurons,
-                "prev_neurons": self.prev_neurons,
-                "alpha": self.alpha,
-                "boundary": self.boundary,
-                "weights": self.weights,
-                "bias": self.bias
-            }
-        })
-    }
-
-    pub fn to_layer(self) -> FullLayer {
+    fn to_layer(self) -> FullLayer {
         let weights = Array2::from_shape_vec((self.neurons, self.prev_neurons), self.weights).unwrap();
         let bias = Array2::from_shape_vec((self.neurons, 1), self.bias).unwrap();
 
@@ -62,5 +50,12 @@ impl FullJson {
             bias: RefCell::new(bias)
         }
 
+    }
+}
+
+impl ToString for FullJson {
+    
+    fn to_string(&self) -> String {
+        serde_json::to_string(&self).unwrap()
     }
 }
